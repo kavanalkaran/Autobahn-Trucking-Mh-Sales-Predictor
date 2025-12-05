@@ -26,7 +26,7 @@ st.markdown(
     /* Hero container */
     .hero-wrapper {
         margin-bottom: 1.8rem;
-        margin-top: 0.4rem;
+        margin-top: 1.1rem;  /* more top spacing so header is not cut */
     }
 
     .hero-card {
@@ -118,7 +118,7 @@ st.markdown(
 
     .hero-meta {
         text-align: right;
-        min-width: 180px;
+        min-width: 210px;
     }
 
     .hero-meta-label {
@@ -186,15 +186,75 @@ st.markdown(
         opacity: 0.7;
     }
 
-    /* KPI cards & section titles (kept from earlier, tuned to palette) */
-    .metric-container {
-        background: rgba(6, 12, 24, 0.85);
-        padding: 1rem 1.2rem;
-        border-radius: 0.9rem;
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        box-shadow: 0 12px 26px rgba(0, 0, 0, 0.55);
+    /* New KPI row styling */
+    .kpi-row {
+        display: flex;
+        gap: 16px;
+        margin-top: 0.8rem;
+        margin-bottom: 0.6rem;
+        flex-wrap: wrap;
     }
 
+    .kpi-card {
+        flex: 1 1 0;
+        min-width: 220px;
+        padding: 14px 18px;
+        border-radius: 16px;
+        background: radial-gradient(circle at top left, rgba(16, 23, 38, 0.95), rgba(5, 9, 19, 0.95));
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
+        color: #F5F7FA;
+    }
+
+    .kpi-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: #9EA3B3;
+        margin-bottom: 4px;
+    }
+
+    .kpi-sub {
+        font-size: 12px;
+        color: #C3CAD9;
+        margin-bottom: 6px;
+    }
+
+    .kpi-value {
+        font-size: 28px;
+        font-weight: 600;
+        line-height: 1.1;
+    }
+
+    .kpi-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        margin-top: 8px;
+    }
+
+    .kpi-pill-pos {
+        background: rgba(16, 185, 129, 0.12);
+        color: #6EE7B7;
+        border: 1px solid rgba(16, 185, 129, 0.5);
+    }
+
+    .kpi-pill-neg {
+        background: rgba(239, 68, 68, 0.12);
+        color: #FCA5A5;
+        border: 1px solid rgba(239, 68, 68, 0.5);
+    }
+
+    .kpi-pill-neutral {
+        background: rgba(148, 163, 184, 0.16);
+        color: #E5E7EB;
+        border: 1px solid rgba(148, 163, 184, 0.5);
+    }
+
+    /* Section titles */
     .section-title {
         font-size: 18px !important;
         font-weight: 600 !important;
@@ -204,7 +264,7 @@ st.markdown(
     }
 
     .block-container {
-        padding-top: 0.6rem;
+        padding-top: 0.4rem;
     }
     </style>
     """,
@@ -428,10 +488,6 @@ def compute_level_forecasts(
 def make_level_bar_chart(df_fc: pd.DataFrame, level_col: str, title: str):
     """
     Month-wise grouped bar chart for Region / Branch / City forecasts.
-
-    - X axis: Month (e.g. Nov 2024, Dec 2024, Jan 2025)
-    - For each Month: one bar per Region/Branch/City (grouped, not stacked)
-    - Clear numeric labels above each bar
     """
     if df_fc.empty:
         return alt.Chart(pd.DataFrame({"x": [], "y": []})).mark_text(
@@ -452,7 +508,6 @@ def make_level_bar_chart(df_fc: pd.DataFrame, level_col: str, title: str):
             title="Month",
             axis=alt.Axis(labelAngle=0),
         ),
-        # Grouped bars per month using xOffset (one bar per Region/Branch/City)
         xOffset=alt.XOffset(f"{level_col}:N"),
         y=alt.Y(
             "Forecast Units:Q",
@@ -472,7 +527,6 @@ def make_level_bar_chart(df_fc: pd.DataFrame, level_col: str, title: str):
 
     bars = base.mark_bar(opacity=0.9)
 
-    # Value labels clearly above each bar
     text = base.mark_text(
         dy=-6,
         fontSize=11,
@@ -485,21 +539,6 @@ def make_level_bar_chart(df_fc: pd.DataFrame, level_col: str, title: str):
         width="container",
         height=350,
         title=title,
-    ).configure_view(
-        strokeWidth=0,
-        fill="transparent",
-    ).configure_axis(
-        labelColor="#CBD2E0",
-        titleColor="#E5E7EE",
-        gridColor="rgba(255, 255, 255, 0.05)",
-        domainColor="rgba(255, 255, 255, 0.15)",
-    ).configure_legend(
-        labelColor="#E5E7EE",
-        titleColor="#E5E7EE",
-    ).configure_title(
-        color="#F5F7FA",
-        fontSize=15,
-        anchor="start",
     )
 
     return chart
@@ -508,42 +547,7 @@ def make_level_bar_chart(df_fc: pd.DataFrame, level_col: str, title: str):
 # ============= MAIN APP =============
 
 def main():
-    # --- HERO HEADER ---
-    st.markdown(
-        """
-        <div class="hero-wrapper">
-          <div class="hero-card">
-            <div class="hero-accent-pill">
-              <span class="hero-accent-pill-dot"></span>
-              BI SALES PREDICTOR
-            </div>
-            <div class="hero-main-row">
-              <div class="hero-main-text">
-                <h1 class="hero-title">BI Sales Predictor</h1>
-                <p class="hero-subtitle">Autobahn Trucking – MH</p>
-                <p class="hero-caption">
-                  Enterprise-grade predictive analytics for MH sales, combining region, branch and city insights
-                  into a single, data-driven decisioning hub.
-                </p>
-              </div>
-              <div class="hero-meta">
-                <div class="hero-meta-label">Suite Overview</div>
-                <div class="hero-meta-value">Forecast · Benchmark · Drill-down</div>
-                <div class="hero-meta-chip">
-                  <div class="hero-meta-chip-icon">∑</div>
-                  <span>Powered by advanced time-series intelligence</span>
-                </div>
-              </div>
-            </div>
-            <div class="hero-geo hero-geo-one"></div>
-            <div class="hero-geo hero-geo-two"></div>
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    # --- Load data ---
+    # --- Load data first so hero can show real stats ---
     if not DATA_PATH.exists():
         st.error(f"Data file not found at: {DATA_PATH}")
         st.stop()
@@ -556,11 +560,58 @@ def main():
         monthly_city,
     ) = build_monthly_aggregates(df)
 
+    # --- High-level coverage stats for the hero header ---
+    min_date = df[DATE_COL].min()
+    max_date = df[DATE_COL].max()
+    total_units = len(df)
+    n_regions = df["Region"].nunique()
+    n_branches = df["Branch"].nunique()
+    n_cities = df["City"].nunique()
+
+    coverage_text = f"{min_date.strftime('%b %Y')} – {max_date.strftime('%b %Y')}"
+    footprint_text = f"{n_regions} Regions · {n_branches} Branches · {n_cities} Cities"
+
+    # --- HERO HEADER ---
+    st.markdown(
+        f"""
+        <div class="hero-wrapper">
+          <div class="hero-card">
+            <div class="hero-accent-pill">
+              <span class="hero-accent-pill-dot"></span>
+              BI SALES PREDICTOR · MH COMMERCIAL
+            </div>
+            <div class="hero-main-row">
+              <div class="hero-main-text">
+                <h1 class="hero-title">BI Sales Predictor</h1>
+                <p class="hero-subtitle">Autobahn Trucking – MH</p>
+                <p class="hero-caption">
+                  Enterprise-grade predictive analytics for MH sales, combining region, branch
+                  and city insights into a single, data-driven decisioning hub.
+                </p>
+              </div>
+              <div class="hero-meta">
+                <div class="hero-meta-label">Data Coverage</div>
+                <div class="hero-meta-value">{coverage_text}</div>
+                <div class="hero-meta-chip">
+                  <div class="hero-meta-chip-icon">∑</div>
+                  <span>{footprint_text}</span>
+                </div>
+                <div class="hero-meta-label" style="margin-top:6px;">Total Retail Records</div>
+                <div class="hero-meta-value">{total_units:,} invoices</div>
+              </div>
+            </div>
+            <div class="hero-geo hero-geo-one"></div>
+            <div class="hero-geo hero-geo-two"></div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     # --- Sidebar controls (for main detailed chart) ---
     with st.sidebar:
         st.header("⚙️ Controls")
 
-        # Region first (hierarchy: Region -> Branch -> City)
         regions = sorted(df["Region"].dropna().unique())
         region_choice = st.selectbox(
             "Select Region",
@@ -568,7 +619,6 @@ def main():
             index=0,
         )
 
-        # Branch list filtered by Region
         if region_choice == "All Regions":
             branches = sorted(df["Branch"].dropna().unique())
         else:
@@ -583,25 +633,12 @@ def main():
             help="Choose 'All MH' for overall forecast, or a specific Branch for branch-wise forecast.",
         )
 
-        # Forecast horizon for the detailed chart
         horizon = st.slider(
             "Forecast horizon (months)",
             min_value=3,
             max_value=18,
             value=6,
             step=1,
-        )
-
-        # History window
-        min_month = monthly_overall["Month"].min()
-        max_month = monthly_overall["Month"].max()
-        total_years = max(1, int(np.ceil(max_month.year - min_month.year + 1)))
-
-        history_years = st.slider(
-            "Show last N years of history",
-            min_value=1,
-            max_value=total_years,
-            value=min(3, total_years),
         )
 
     # --- Select time series based on Region & Branch for main chart ---
@@ -631,15 +668,10 @@ def main():
 
     ts = ensure_full_monthly_index(ts)
 
-    # Limit history shown
-    last_month = ts.index.max()
-    cutoff = last_month - pd.DateOffset(years=history_years) + pd.offsets.MonthBegin(0)
-    ts_display = ts[ts.index >= cutoff]
-
-    # --- Forecast for main view ---
+    # --- Forecast for main view (independent of history slider) ---
     fc = forecast_series(ts, periods=horizon)
 
-    # --- Metrics ---
+    # --- Metrics for KPI cards ---
     last_actual_month = ts.index.max()
     last_actual_value = ts.loc[last_actual_month]
 
@@ -649,42 +681,83 @@ def main():
     one_year_ago = last_actual_month - pd.DateOffset(years=1)
     yoy_value = ts.loc[one_year_ago] if one_year_ago in ts.index else None
 
-    # --- Top metrics layout ---
-    col1, col2, col3 = st.columns(3)
+    # Prepare KPI text pieces
+    last_actual_str = f"{int(last_actual_value):,} units"
+    next_fc_str = f"{int(round(first_fc_value)):,} units"
 
-    with col1:
-        st.markdown('<div class="metric-container">', unsafe_allow_html=True)
-        st.metric(
-            label=f"Last Actual ({last_actual_month.strftime('%b %Y')})",
-            value=f"{int(last_actual_value):,} units",
-        )
-        st.markdown("</div>", unsafe_allow_html=True)
+    delta_val = first_fc_value - last_actual_value
+    if delta_val > 0:
+        delta_class = "kpi-pill kpi-pill-pos"
+        delta_text = f"↑ {delta_val:.0f} vs last month"
+    elif delta_val < 0:
+        delta_class = "kpi-pill kpi-pill-neg"
+        delta_text = f"↓ {abs(delta_val):.0f} vs last month"
+    else:
+        delta_class = "kpi-pill kpi-pill-neutral"
+        delta_text = "No change vs last month"
 
-    with col2:
-        st.markdown('<div class="metric-container">', unsafe_allow_html=True)
-        st.metric(
-            label=f"Next Month Forecast ({first_fc_month.strftime('%b %Y')})",
-            value=f"{int(round(first_fc_value)):,} units",
-            delta=f"{(first_fc_value - last_actual_value):+.0f} vs last month",
-        )
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with col3:
-        st.markdown('<div class="metric-container">', unsafe_allow_html=True)
-        if yoy_value is not None and yoy_value != 0:
-            yoy_change = (last_actual_value - yoy_value) / yoy_value * 100
-            st.metric(
-                label="YoY Growth",
-                value=f"{yoy_change:+.1f} %",
-                delta=f"From {int(yoy_value):,} units last year",
-            )
+    if yoy_value is not None and yoy_value != 0:
+        yoy_change = (last_actual_value - yoy_value) / yoy_value * 100
+        yoy_str = f"{yoy_change:+.1f} %"
+        if yoy_change > 0:
+            yoy_class = "kpi-pill kpi-pill-pos"
+            yoy_delta_text = f"↑ From {int(yoy_value):,} units last year"
+        elif yoy_change < 0:
+            yoy_class = "kpi-pill kpi-pill-neg"
+            yoy_delta_text = f"↓ From {int(yoy_value):,} units last year"
         else:
-            st.metric(
-                label="YoY Growth",
-                value="N/A",
-                delta="Not enough data",
-            )
-        st.markdown("</div>", unsafe_allow_html=True)
+            yoy_class = "kpi-pill kpi-pill-neutral"
+            yoy_delta_text = f"Same as {int(yoy_value):,} units last year"
+    else:
+        yoy_str = "N/A"
+        yoy_class = "kpi-pill kpi-pill-neutral"
+        yoy_delta_text = "Not enough data"
+
+    # --- KPI row (three neat cards) ---
+    kpi_html = f"""
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-label">Last Actual</div>
+        <div class="kpi-sub">{last_actual_month.strftime('%b %Y')}</div>
+        <div class="kpi-value">{last_actual_str}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Next Month Forecast</div>
+        <div class="kpi-sub">{first_fc_month.strftime('%b %Y')}</div>
+        <div class="kpi-value">{next_fc_str}</div>
+        <div class="{delta_class}">
+          {delta_text}
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">YoY Growth</div>
+        <div class="kpi-sub">vs same month last year</div>
+        <div class="kpi-value">{yoy_str}</div>
+        <div class="{yoy_class}">
+          {yoy_delta_text}
+        </div>
+      </div>
+    </div>
+    """
+    st.markdown(kpi_html, unsafe_allow_html=True)
+
+    # --- Slider for history window (directly above chart) ---
+    min_month = ts.index.min()
+    max_month = ts.index.max()
+    total_years = max(1, int(np.ceil(max_month.year - min_month.year + 1)))
+
+    history_years = st.slider(
+        "History window (years)",
+        min_value=1,
+        max_value=total_years,
+        value=min(3, total_years),
+        help="Controls how many years of past actuals are visible in the chart below.",
+    )
+
+    # Limit history shown according to slider
+    last_month = ts.index.max()
+    cutoff = last_month - pd.DateOffset(years=history_years) + pd.offsets.MonthBegin(0)
+    ts_display = ts[ts.index >= cutoff]
 
     # --- Main detailed chart ---
     chart = make_forecast_chart(ts_display, fc, label)
