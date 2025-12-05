@@ -18,6 +18,16 @@ st.set_page_config(
 st.markdown(
     """
     <style>
+    /* Hide default Streamlit top header bar */
+    header[data-testid="stHeader"] {
+        display: none;
+    }
+
+    /* Pull content up a bit now that header is gone */
+    section.main > div.block-container {
+        padding-top: 0.4rem;
+    }
+
     /* Global background tweak for subtle BI feel */
     .stApp {
         background: radial-gradient(circle at top left, #101726 0, #050913 45%, #050710 100%);
@@ -26,7 +36,7 @@ st.markdown(
     /* Hero container */
     .hero-wrapper {
         margin-bottom: 1.8rem;
-        margin-top: 1.1rem;  /* more top spacing so header is not cut */
+        margin-top: 0.6rem;
     }
 
     .hero-card {
@@ -142,8 +152,8 @@ st.markdown(
         margin-top: 6px;
         padding: 4px 10px;
         border-radius: 999px;
-        background: rgba(74, 79, 87, 0.28);
-        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: rgba(20, 30, 50, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         font-size: 11px;
         color: #E5E7EE;
     }
@@ -169,29 +179,25 @@ st.markdown(
     }
 
     .hero-geo-one {
-        width: 160px;
-        height: 160px;
-        right: -40px;
-        top: -45px;
-        background: radial-gradient(circle at 30% 30%, rgba(212, 175, 55, 0.35), transparent 60%);
-        opacity: 0.9;
-    }
-
-    .hero-geo-two {
-        width: 220px;
-        height: 80px;
-        right: -55px;
-        bottom: -30px;
-        background: linear-gradient(90deg, rgba(74, 79, 87, 0.5), transparent);
+        width: 140px;
+        height: 140px;
+        right: -35px;
+        top: -40px;
+        background: radial-gradient(circle at 30% 30%, rgba(212, 175, 55, 0.25), transparent 60%);
         opacity: 0.7;
     }
 
-    /* New KPI row styling */
+    /* remove the big shaded patch on the right */
+    .hero-geo-two {
+        display: none;
+    }
+
+    /* KPI row styling */
     .kpi-row {
         display: flex;
         gap: 16px;
         margin-top: 0.8rem;
-        margin-bottom: 0.6rem;
+        margin-bottom: 0.4rem;
         flex-wrap: wrap;
     }
 
@@ -265,6 +271,52 @@ st.markdown(
 
     .block-container {
         padding-top: 0.4rem;
+    }
+
+    /* Sidebar styling */
+    [data-testid="stSidebar"] {
+        background: radial-gradient(circle at top left, #151824 0, #11121a 50%, #0b0c12 100%);
+        border-right: 1px solid rgba(212, 175, 55, 0.4);
+    }
+
+    .sidebar-title {
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: #F5F7FA;
+        margin-bottom: 0.1rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .sidebar-subtitle {
+        font-size: 11px;
+        color: #A2A8BA;
+        margin-bottom: 0.9rem;
+    }
+
+    .sidebar-section-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: #9ea3b3;
+        margin-top: 1.1rem;
+        margin-bottom: 0.1rem;
+    }
+
+    .sidebar-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 10px;
+        padding: 4px 9px;
+        border-radius: 999px;
+        border: 1px solid rgba(212, 175, 55, 0.35);
+        background: rgba(10, 26, 47, 0.58);
+        color: #F5F5F5;
+        margin-bottom: 0.6rem;
     }
     </style>
     """,
@@ -590,18 +642,17 @@ def main():
                 </p>
               </div>
               <div class="hero-meta">
-                <div class="hero-meta-label">Data Coverage</div>
+                <div class="hero-meta-label">DATA COVERAGE</div>
                 <div class="hero-meta-value">{coverage_text}</div>
                 <div class="hero-meta-chip">
-                  <div class="hero-meta-chip-icon">∑</div>
+                  <div class="hero-meta-chip-icon">📍</div>
                   <span>{footprint_text}</span>
                 </div>
-                <div class="hero-meta-label" style="margin-top:6px;">Total Retail Records</div>
+                <div class="hero-meta-label" style="margin-top:6px;">TOTAL RETAIL RECORDS</div>
                 <div class="hero-meta-value">{total_units:,} invoices</div>
               </div>
             </div>
             <div class="hero-geo hero-geo-one"></div>
-            <div class="hero-geo hero-geo-two"></div>
           </div>
         </div>
         """,
@@ -610,65 +661,118 @@ def main():
 
     # --- Sidebar controls (for main detailed chart) ---
     with st.sidebar:
-        st.header("⚙️ Controls")
+        st.markdown(
+            """
+            <div class="sidebar-title">⚙ Controls</div>
+            <div class="sidebar-subtitle">
+              Adjust the view by Region, Branch and City to stress test MH volumes.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
+        # Region select
+        st.markdown('<div class="sidebar-section-label">Scope</div>', unsafe_allow_html=True)
         regions = sorted(df["Region"].dropna().unique())
         region_choice = st.selectbox(
-            "Select Region",
+            "Select Region 🌎",
             options=["All Regions"] + regions,
             index=0,
         )
 
+        # Branch list filtered by Region
         if region_choice == "All Regions":
-            branches = sorted(df["Branch"].dropna().unique())
+            branches_source = df
         else:
-            branches = sorted(
-                df[df["Region"] == region_choice]["Branch"].dropna().unique()
-            )
+            branches_source = df[df["Region"] == region_choice]
 
+        branches = sorted(branches_source["Branch"].dropna().unique())
         branch_choice = st.selectbox(
-            "Select Branch / View",
+            "Select Branch / View 🏢",
             options=["All MH"] + branches,
             index=0,
             help="Choose 'All MH' for overall forecast, or a specific Branch for branch-wise forecast.",
         )
 
+        # City list filtered by Region and Branch
+        city_source = branches_source.copy()
+        if branch_choice != "All MH":
+            city_source = city_source[city_source["Branch"] == branch_choice]
+
+        cities = sorted(city_source["City"].dropna().unique())
+        city_choice = st.selectbox(
+            "Select City 🏙️",
+            options=["All Cities"] + list(cities),
+            index=0,
+            help="Optional: zoom into a specific city within the selected scope.",
+        )
+
+        # Forecast horizon slider
+        st.markdown('<div class="sidebar-section-label">Forecast</div>', unsafe_allow_html=True)
         horizon = st.slider(
-            "Forecast horizon (months)",
+            "Forecast horizon (months) 📈",
             min_value=3,
             max_value=18,
             value=6,
             step=1,
         )
 
-    # --- Select time series based on Region & Branch for main chart ---
-    if branch_choice == "All MH":
-        ts = monthly_overall.set_index("Month")["units"]
-        label = "All MH"
-    else:
-        if region_choice == "All Regions":
-            mb = monthly_branch[monthly_branch["Branch"] == branch_choice]
-        else:
-            mb = monthly_branch[
-                (monthly_branch["Region"] == region_choice)
-                & (monthly_branch["Branch"] == branch_choice)
-            ]
+        # Current selection chip
+        selection_parts = []
+        if region_choice != "All Regions":
+            selection_parts.append(region_choice)
+        if branch_choice != "All MH":
+            selection_parts.append(branch_choice)
+        if city_choice != "All Cities":
+            selection_parts.append(city_choice)
+        scope_text = " · ".join(selection_parts) if selection_parts else "All MH network"
 
-        if mb.empty:
-            st.warning(
-                f"No data found for branch '{branch_choice}' with region filter '{region_choice}'."
-            )
-            st.stop()
+        st.markdown(
+            f"""
+            <div class="sidebar-section-label">Active view</div>
+            <div class="sidebar-chip">
+              🔍 <span>{scope_text}</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-        ts = mb.set_index("Month")["units"]
-        if region_choice == "All Regions":
-            label = f"Branch: {branch_choice}"
-        else:
-            label = f"{branch_choice} ({region_choice})"
+    # --- Build time series for main chart based on selections ---
+    sub = df.copy()
+    if region_choice != "All Regions":
+        sub = sub[sub["Region"] == region_choice]
+    if branch_choice != "All MH":
+        sub = sub[sub["Branch"] == branch_choice]
+    if city_choice != "All Cities":
+        sub = sub[sub["City"] == city_choice]
+
+    if sub.empty:
+        st.warning("No data available for the selected Region / Branch / City combination.")
+        return
+
+    ts = (
+        sub.groupby(pd.Grouper(key=DATE_COL, freq="MS"))
+        .size()
+        .rename("units")
+    )
+
+    if ts.empty:
+        st.warning("No monthly data available for the selected view.")
+        return
 
     ts = ensure_full_monthly_index(ts)
 
-    # --- Forecast for main view (independent of history slider) ---
+    # Label for chart title
+    label_parts = []
+    if branch_choice != "All MH":
+        label_parts.append(branch_choice)
+    if city_choice != "All Cities":
+        label_parts.append(city_choice)
+    if region_choice != "All Regions":
+        label_parts.append(region_choice)
+    label = " · ".join(label_parts) if label_parts else "All MH"
+
+    # --- Forecast for main view ---
     fc = forecast_series(ts, periods=horizon)
 
     # --- Metrics for KPI cards ---
@@ -681,7 +785,6 @@ def main():
     one_year_ago = last_actual_month - pd.DateOffset(years=1)
     yoy_value = ts.loc[one_year_ago] if one_year_ago in ts.index else None
 
-    # Prepare KPI text pieces
     last_actual_str = f"{int(last_actual_value):,} units"
     next_fc_str = f"{int(round(first_fc_value)):,} units"
 
@@ -754,7 +857,6 @@ def main():
         help="Controls how many years of past actuals are visible in the chart below.",
     )
 
-    # Limit history shown according to slider
     last_month = ts.index.max()
     cutoff = last_month - pd.DateOffset(years=history_years) + pd.offsets.MonthBegin(0)
     ts_display = ts[ts.index >= cutoff]
